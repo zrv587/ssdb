@@ -1,8 +1,6 @@
 package com.ssdb.controller;
 
 import org.nutz.ssdb4j.impl.SimpleClient;
-import org.nutz.ssdb4j.impl.SocketSSDBStream;
-import org.nutz.ssdb4j.spi.Cmd;
 import org.nutz.ssdb4j.spi.Response;
 import org.nutz.ssdb4j.spi.SSDB;
 
@@ -23,11 +21,10 @@ public class SsdbDemo {
             SSDB ssdb = new SimpleClient(host, port, 50000);
 //            ssdb.hset("key",1,2);
             System.out.println(ssdb.exists("key").asString());
-            if(ssdb.exists("key").asInt()>0){
+            if (ssdb.exists("key").asInt() > 0) {
                 Response response = ssdb.get("key");
                 System.out.println(response.asString());
             }
-            System.out.println(ssdb.info().asString());
             ssdb.hset("user", "zs", "1123");
             ssdb.hdel("user", "zs");
             Response response1 = ssdb.hget("user", "zs");
@@ -37,7 +34,6 @@ public class SsdbDemo {
             } else {
                 System.out.println(ssdb.hget("user", "zs").asString());
             }
-//            stream.req(Cmd.set);
         }
     }
 }
