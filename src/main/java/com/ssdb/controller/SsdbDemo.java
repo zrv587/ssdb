@@ -14,19 +14,19 @@ public class SsdbDemo {
     public static void main(String[] args) throws Exception {
         {
             //ssdb的地址
-            String host = "192.168.31.129";
+            String host = "106.12.20.154";
             //端口号
             int port = 8888;
             //连接ssdb
             SSDB ssdb = new SimpleClient(host, port, 50000);
-//            ssdb.hset("key",1,2);
+            ssdb.set("key","123");
             System.out.println(ssdb.exists("key").asString());
             if (ssdb.exists("key").asInt() > 0) {
                 Response response = ssdb.get("key");
                 System.out.println(response.asString());
             }
-            ssdb.hset("user", "zs", "1123");
-            ssdb.hdel("user", "zs");
+//            ssdb.hset("user", "zs", "1123");
+//            ssdb.hdel("user", "zs");
             Response response1 = ssdb.hget("user", "zs");
             if (response1.datas.size() <= 0) {
                 System.out.println(response1.stat);
