@@ -2,6 +2,7 @@ package com.ssdb.controller;
 
 
 import org.csource.common.MyException;
+import org.csource.common.NameValuePair;
 import org.csource.fastdfs.*;
 import org.apache.commons.io.*;
 
@@ -12,24 +13,15 @@ import java.io.*;
  * @Author zhengr
  * @date 2018-06-22
  */
-public class FdfsDemo {
-    public static void main(String[] args) {
-        try {
-            // 7.使用StorageClient对象上传文件(图片)
-            // 参数1：文件名，参数名：扩展名，不能包含"."，参数3：文件的元数据，保存文件的原始名、大小、尺寸等，如果没有可为null
-        String[] strings = getStorageClient().upload_file("C:\\Users\\Administrator\\Desktop\\meinv.jpg", "jpg", null);
-        for (String str: strings ) {
-            System.out.println(str);
-        }
 
-       int i= downloadFile("group1","M00/00/00/wKgABFssye6AU92qAAEKu9v-PZM915.jpg",new File("meinv.jpg"));
-            System.out.println(i);
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (MyException e) {
-            e.printStackTrace();
-        }
-    }
+public class FdfsDemo {
+    /**
+     * @Description todo
+     * @Author zhengr
+     * @date 2018/6/25 10:28
+     * @param []
+     * @return org.csource.fastdfs.StorageClient 获得StorageClient对象
+     */
     public static StorageClient getStorageClient() {
         // 1.先创建一个配置文件——fast_dfs.conf，配置文件的内容就是指定TrackerServer的地址
         // 2.使用全局方法加载配置文件
@@ -64,16 +56,17 @@ public class FdfsDemo {
      * @param outFile 文件下载保存位置
      * @return
      */
-    public static int downloadFile(String fileId, String fileName,File outFile) {
+    public static boolean downloadFile(String fileId, String fileName,File outFile) {
         FileOutputStream fos = null;
+        int i=0;
         try {
             byte[] content = getStorageClient().download_file(fileId,fileName);
            InputStream inputStream= new ByteArrayInputStream(content);
             fos = new FileOutputStream(outFile);
-            int i=     IOUtils.copy(inputStream,fos);
-            return i;
+                i=     IOUtils.copy(inputStream,fos);
+            return i>0?true:false;
         } catch (Exception e) {
-            e.printStackTrace();
+            System.out.println("【"+fileName+"】"+"不存在");
         } finally {
             if (fos != null) {
                 try {
@@ -83,8 +76,46 @@ public class FdfsDemo {
                 }
             }
         }
-        return -1;
+        return i>0?true:false;
     }
 
+    /**
+     * @Author zhengr
+     * @date
+     * @param fileName 文件的名字
+     * @param    extName 文件的后缀名
+     * @return 
+     * @Description 上传文件
+     */
+    public static String[] uploadFile(String fileName, String extName, NameValuePair[] metaList){
+        String[] strings=null;
+        try {
+            strings = getStorageClient().upload_file(fileName, extName, metaList);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (MyException e) {
+            e.printStackTrace();
+        }
+        return strings;
+    }
+    /***
+     * @Description 删除文件
+     * @Author zhengr
+     * @date 2018/6/25 10:14
+     * @param [groupId 组id, fileName 文件名字]
+     * @return int
+     */
+    public static int  delFile(String groupId,String fileName){
+        int i = 0;
+        try {
+            i = getStorageClient().delete_file(groupId, fileName);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (MyException e) {
+            e.printStackTrace();
+        }
+        System.out.println( i==0 ? "删除成功" : "删除失败:"+"【"+fileName+"】不存在");
+        return i;
+    }
 }
 
