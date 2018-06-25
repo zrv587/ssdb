@@ -30,14 +30,27 @@ public class FdfsDemo {
             e.printStackTrace();
         }
     }
-    public static StorageClient getStorageClient() throws IOException, MyException {
+    public static StorageClient getStorageClient() {
         // 1.先创建一个配置文件——fast_dfs.conf，配置文件的内容就是指定TrackerServer的地址
         // 2.使用全局方法加载配置文件
-        ClientGlobal.init("C:\\Users\\Administrator\\Desktop\\ssdb\\src\\main\\resources\\fdfs_dfs.conf");
+        try {
+            ClientGlobal.init("C:\\Users\\Administrator\\Desktop\\ssdb\\src\\main\\resources\\fdfs_dfs.conf");
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (MyException e) {
+            System.out.println("配置文件找不到");
+            e.printStackTrace();
+        }
         // 3.创建一个TrackerClient对象
         TrackerClient trackerClient = new TrackerClient();
         // 4.通过TrackerClient对象获得TrackerServer对象
-        TrackerServer trackerServer = trackerClient.getConnection();
+        TrackerServer trackerServer = null;
+        try {
+            trackerServer = trackerClient.getConnection();
+        } catch (IOException e) {
+            System.out.println("获取连接失败");
+            e.printStackTrace();
+        }
         // 5.创建StorageServer的引用，null就可以了
         StorageServer storageServer = null;
         // 6.创建一个StorageClient对象，其需要两个参数，一个是TrackerServer，一个是StorageServer
