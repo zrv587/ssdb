@@ -14,7 +14,7 @@ import java.util.*;
  * @Author zhengr
  * @date 2018/6/25 14:30
  * @Description jdbc工具类
- * @Version 1.0
+ * @Version 2.0
  */
 public class JDBCUtil {
     private static Connection conn = null;
@@ -71,7 +71,6 @@ public class JDBCUtil {
             e.printStackTrace();
         } finally {
             try {
-                rs.close();
                 psmt.close();
                 conn.close();
             } catch (SQLException e) {
@@ -140,7 +139,7 @@ public class JDBCUtil {
      * @param [sql, params]  
      * @return int
      */
-    public static int delete(String sql, String... params) {
+    public static void delete(String sql, String... params) {
         conn = getConn();
         int k = 0;
         try {
@@ -148,8 +147,8 @@ public class JDBCUtil {
             for (int i = 0; i < params.length; i++) {
                 psmt.setObject(i + 1, params[i]);
             }
-            k = psmt.executeUpdate();
-            System.out.println("删除成功");
+            psmt.executeUpdate();
+            System.out.println("-----删除成功");
             conn.commit();
         } catch (SQLException e) {
             try {
@@ -167,9 +166,7 @@ public class JDBCUtil {
             } catch (SQLException e) {
                 e.printStackTrace();
             }
-
         }
-        return k;
     }
 
     /**
@@ -203,7 +200,6 @@ public class JDBCUtil {
             } catch (SQLException e) {
                 e.printStackTrace();
             }
-
         }
     }
 }
