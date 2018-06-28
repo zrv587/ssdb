@@ -6,10 +6,9 @@ package com.ssdb.controller;/**
 
 
 import java.io.*;
+import java.lang.reflect.Field;
 import java.sql.*;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 
 /**
  * @Author zhengr
@@ -19,8 +18,8 @@ import java.util.Properties;
  */
 public class JDBCUtil {
     private static Connection conn = null;
-    private PreparedStatement psmt = null;
-    private ResultSet rs = null;
+    private static PreparedStatement psmt = null;
+    private static ResultSet rs = null;
 
     public static Connection getConn() {
         try {
@@ -32,11 +31,11 @@ public class JDBCUtil {
                 String user = properties.getProperty("user");
                 String password = properties.getProperty("password");
                 String driverName = properties.getProperty("driver");
-                System.out.println(properties);
                 //加载驱动
                 Class.forName(driverName);
                 //获取连接
                 conn = DriverManager.getConnection(url, user, password);
+                conn.setAutoCommit(false);
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
             } catch (IOException e) {
@@ -59,65 +58,152 @@ public class JDBCUtil {
      * @Author zhengr
      * @date 2018/6/25 14:58
      */
-    public int insert(String sql, String... params) {
-
-        Map map = arrToMap(params);
-
-        int i = 0;
+    public static int insert(String sql, String... params) {
+        int k = 0;
         conn = getConn();
         try {
-            psmt = conn.prepareStatement(sql);
-            psmt.setString(1, map.get("groupId").toString());
-            psmt.setString(2, map.get("fileName").toString());
-            psmt.setString(3, map.get("meta").toString());
-            i = psmt.executeUpdate();
+            psmt = conn.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
+            for (int i = 0; i < params.length; i++) {
+                psmt.setObject(i + 1, params[i]);
+            }
+            k = psmt.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
+        } finally {
+            try {
+                rs.close();
+                psmt.close();
+                conn.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+            return k;
         }
-        return i;
     }
 
     /**
-     * @param
-     * @return
-     * @Description 下载图片
+     * @param [cls 要封装的类, sql 执行的sql, params 查询的条件]
+     * @return java.util.List<java.lang.Object>
+     * @Description 查询操作
      * @Author zhengr
-     * @date 2018/6/25 15:36
+     * @date 2018/6/28 12:00
      */
-    public boolean query(String sql, String file,String... params) {
+    public static List <Object> query(Class <?> cls, String sql, String... params) {
         conn = getConn();
         boolean flag = false;
+        List <Object> list = new ArrayList();
         try {
             psmt = conn.prepareStatement(sql);
-            Map map = arrToMap(params);
-            psmt.setInt(1, Integer.parseInt(map.get("id").toString()));
+            if (params.length > 0) {
+                for (int i = 0; i < params.length; i++) {
+                    psmt.setObject(i + 1, params[i]);
+                }
+            }
             rs = psmt.executeQuery();
+            Field fields[] = cls.getDeclaredFields();
+            Object o = null;
+
             while (rs.next()) {
-                String groupId = rs.getString(1);
-                String fileName = rs.getString(2);
-                String meta=rs.getString(3);
-                flag = FdfsDemo.downloadFile(groupId, fileName, new File(file.concat("."+meta)));
+                o = cls.newInstance();
+                for (Field field : fields) {
+                    field.setAccessible(true);
+                    try {
+                        field.set(o, rs.getObject(field.getName()));
+                    } catch (Exception e) {
+                        field.set(o, null);
+                    }
+                }
+                list.add(o);
             }
         } catch (SQLException e) {
             e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (InstantiationException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                rs.close();
+                psmt.close();
+                conn.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+            return list;
         }
-        return flag;
     }
 
     /***
-     * @Description 将数组转变成map
+     * @Description 删除操作
      * @Author zhengr
-     * @date 2018/6/25 15:08
-     * @param [params]
-     * @return void
+     * @date 2018/6/28 12:59
+     * @param [sql, params]  
+     * @return int
      */
-    public static Map arrToMap(String[] params) {
-        Map map = new HashMap();
-        for (String str : params) {
-            String[] arr = str.split(":");
-            map.put(arr[0], arr[1]);
+    public static int delete(String sql, String... params) {
+        conn = getConn();
+        int k = 0;
+        try {
+            psmt = conn.prepareStatement(sql);
+            for (int i = 0; i < params.length; i++) {
+                psmt.setObject(i + 1, params[i]);
+            }
+            k = psmt.executeUpdate();
+            System.out.println("删除成功");
+            conn.commit();
+        } catch (SQLException e) {
+            try {
+                conn.rollback();
+            } catch (SQLException e1) {
+                e1.printStackTrace();
+            }
+            System.out.println("数据删除失败");
+            e.printStackTrace();
+        } finally {
+            try {
+                rs.close();
+                psmt.close();
+                conn.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+
         }
-        return map;
+        return k;
     }
 
+    /**
+     * @Description 修改操作
+     * @Author zhengr
+     * @date 2018/6/28 13:01
+     * @param [sql, params]
+     * @return void
+     */
+    public void update(String sql, String... params) {
+        conn = getConn();
+        try {
+            psmt = conn.prepareStatement(sql);
+            for (int i = 0; i < params.length; i++) {
+                psmt.setObject(i + 1, params[i]);
+            }
+            psmt.executeUpdate();
+            conn.commit();
+        } catch (SQLException e) {
+            try {
+                conn.rollback();
+            } catch (SQLException e1) {
+                e1.printStackTrace();
+            }
+            e.printStackTrace();
+        } finally {
+            try {
+                rs.close();
+                psmt.close();
+                conn.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+
+        }
+    }
 }
